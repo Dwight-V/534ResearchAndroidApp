@@ -9,6 +9,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
@@ -60,21 +61,29 @@ public class MainActivity extends AppCompatActivity {
         dataSet1.setCircleColor(Color.rgb(155,0,0));
         dataSet1.setDrawFilled(true);
         dataSet1.setFillColor(Color.rgb(100, 0, 0));
+        dataSet1.setDrawValues(false);
 
-        // One can combine two separate datasets into one ArrayList then feed it into the LineData object instead.
+        // .*Data is an object for even further customizing your specific graph output.
+        LineData lineData = new LineData(dataSet1);
+        // One could instead combine two separate datasets into one ArrayList then feed it into the LineData object instead.
 //        ArrayList dataSetFinal = new ArrayList<>();
 //        dataSetFinal.add(dataSet1);
 //        dataSetFinal.add(dataSet2);
 //        LineData lineData = new LineData(dataSetFinal);
 
-        // .*Data is an object for even further customizing your specific graph output.
-        LineData lineData = new LineData(dataSet1);
-        lineChartHistoric.getXAxis().setTextSize(200);
-        lineChartHistoric.getXAxis().setGranularity(1); // Sets the 'step' of the x-axis sort of
-        lineChartHistoric.getAxisLeft().setDrawLabels(false); // Disables the left y-axis
+        // x-axis customizing
+        lineChartHistoric.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
+        lineChartHistoric.getXAxis().setTextSize(15); // The float represents pixel density, within [6f, 24f]
+        lineChartHistoric.getXAxis().setGranularity(1); // Sets the minimum step when zooming in
+        // y-axis customizing
+        lineChartHistoric.getAxisRight().setDrawLabels(false); // Disables the desired y-axis
+        lineChartHistoric.getAxisLeft().setGranularity(1);
+        lineChartHistoric.getAxisLeft().setLabelCount(10);
+        lineChartHistoric.getAxisLeft().setTextSize(15);
+
 
         // Finalizes and displays your data!
         lineChartHistoric.setData(lineData);
-        lineChartHistoric.invalidate(); // refresh
+        lineChartHistoric.invalidate(); // refreshes the chart
     }
 }
