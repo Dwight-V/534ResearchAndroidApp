@@ -18,7 +18,7 @@ import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity {
-    private Button btnUpdateTxtOut;
+    private Button btnRandomInt;
     private TextView txtInitialData;
 
     private LineChart lineChartHistoric;
@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        btnUpdateTxtOut = (Button) findViewById(R.id.btnUpdateTxtOut);
+        btnRandomInt = (Button) findViewById(R.id.btn_random_int);
         txtInitialData = (TextView) findViewById(R.id.txt_initial_data);
         lineChartHistoric = (LineChart) findViewById(R.id.lchart_historic);
 
@@ -84,12 +84,14 @@ public class MainActivity extends AppCompatActivity {
         //endregion
 
 
-//        btnUpdateTxtOut.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                txtOut.setText(btnUpdateTxtOut.getText().toString());
-//            }
-//        });
+        btnRandomInt.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Generates a int in the range [1, 10]
+                int randInt = (int) (Math.random() * 10 + 1);
+                txtInitialData.setText(Integer.toString(randInt));
+            }
+        });
     }
 
     // Creates and displays the line chart. Used to unify the look of all line charts in our app.
