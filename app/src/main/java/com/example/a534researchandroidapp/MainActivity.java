@@ -10,21 +10,21 @@ import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
     private Button btnUpdateTxtOut;
-    private TextView txtOut;
+    private TextView txtInitialData;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        btnUpdateTxtOut = (Button) findViewById(R.id.btnUpdateTxtOut);
-        txtOut = (TextView) findViewById(R.id.txtOut);
+//        btnUpdateTxtOut = (Button) findViewById(R.id.btnUpdateTxtOut);
+        txtInitialData = (TextView) findViewById(R.id.txt_initial_data);
 
-        btnUpdateTxtOut.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                txtOut.setText(btnUpdateTxtOut.getText().toString());
-            }
-        });
+//        btnUpdateTxtOut.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                txtOut.setText(btnUpdateTxtOut.getText().toString());
+//            }
+//        });
     }
 }
