@@ -16,8 +16,10 @@ import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -29,6 +31,8 @@ public class MainActivity extends AppCompatActivity {
     private final int TIME_INTERVAL = 400;
     private final int MAX_RANDOM_INT = 1000;
     private final int MIN_RANDOM_INT = 1;
+    // What the graph puts as the key for random data.
+    private final String DATA_LABEL = "Data";
 
 
     private Button btnRandomInt, btnStart, btnStop, btnClear, btnAiReport;
@@ -37,10 +41,15 @@ public class MainActivity extends AppCompatActivity {
 
 
     private int xValCount = 0;
-    private List<Entry> historicalEntries = new ArrayList<Entry>();
-
+    // Holds the raw data for the graph. This data is then converted to display in the graph.
+    private ArrayList<Entry> historicalEntries = new ArrayList<Entry>();
+    // Keeps track of the total mean up to every point in the graph.
+    private ArrayList<Entry> historicalEntriesMean = new ArrayList<>();
+    // Used in btnStart's loop.
     private Handler handler = new Handler(Looper.getMainLooper());
+    // Used in btnStart's loop.
     private Runnable runnable;
+    // Used to prevent double-clicking btnStart for twice the speed.
     private boolean handlerIsRunning = false;
 
     @Override
@@ -61,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 addRandomEntryHistorical();
-                updateLChartHistorical();
+                updateLChartHistorical(createLineDataSet(historicalEntries, DATA_LABEL, 200, 0, 0));
                 handler.postDelayed(this, TIME_INTERVAL); // Schedule the runnable to run again after 1 second
             }
         };
@@ -70,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 addRandomEntryHistorical();
-                updateLChartHistorical();
+                updateLChartHistorical(createLineDataSet(historicalEntries, DATA_LABEL, 200, 0, 0));
             }
         });
 
@@ -96,7 +105,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean onLongClick(View v) {
                 historicalEntries.clear();
-                updateLChartHistorical();
+                historicalEntriesMean.clear();
+                xValCount = 0;
+                updateLChartHistorical(createLineDataSet(historicalEntries, DATA_LABEL, 200, 0, 0));
                 return false;
             }
         });
@@ -105,10 +116,11 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 List<Entry> sortedHistoricalEntries = historicalEntries.stream().sorted((p1, p2) -> Float.compare(p2.getY(), p1.getY())).collect(Collectors.toList());
+
                 String strOut;
                 if (!sortedHistoricalEntries.isEmpty()) {
                     strOut = String.format("Max: (%.0f, %.0f)!\n", sortedHistoricalEntries.get(0).getX(), sortedHistoricalEntries.get(0).getY());
-                    strOut += String.format("Y-val Mean: %.2f\n", sortedHistoricalEntries.stream().mapToInt(p1 -> (int) p1.getY()).average().orElse(0));
+                    strOut += String.format("Y-val Mean: %.2f\n", historicalEntriesMean.get(historicalEntriesMean.size() - 1).getY());
                     if (sortedHistoricalEntries.size() % 2 == 0) {
                         float mid1 = sortedHistoricalEntries.get((int) (sortedHistoricalEntries.size() / 2)).getY();
                         float mid2 = sortedHistoricalEntries.get((int) (sortedHistoricalEntries.size() / 2) - 1).getY();
@@ -116,6 +128,9 @@ public class MainActivity extends AppCompatActivity {
                     }  else {
                         strOut += String.format("Y-val Median: %.1f\n", sortedHistoricalEntries.get((int) (sortedHistoricalEntries.size() / 2)).getY());
                     }
+                    updateLChartHistorical(createLineDataSet(historicalEntriesMean, "Mean to date", 0, 200, 0),
+                            createLineDataSet(historicalEntries, DATA_LABEL, 200, 0, 0));
+
                 } else {
                     strOut = "No data to interpret...";
                 }
@@ -126,39 +141,49 @@ public class MainActivity extends AppCompatActivity {
 
     public void addEntryHistorical(int toBeAdded) {
         historicalEntries.add(new Entry(xValCount++, toBeAdded));
+        historicalEntriesMean.add(new Entry(xValCount - 1, (float) historicalEntries.stream().mapToInt(p1 -> (int) p1.getY()).average().orElse(0)));
     }
 
-    public void updateLChartHistorical() {
-        // .*DataSet puts your data together, which can then be formatted before display.
-        LineDataSet dataSet1 = new LineDataSet(historicalEntries, "");
-        dataSet1.setColor(Color.rgb(155, 0, 0));
-        dataSet1.setCircleColor(Color.rgb(155,0,0));
-        dataSet1.setDrawFilled(true);
-        dataSet1.setFillColor(Color.rgb(100, 0, 0));
-        dataSet1.setDrawValues(false);
+    public void updateLChartHistorical(LineDataSet... dataSets) {
+        if (dataSets.length == 0) {
+            Toast.makeText(this, "Empty...", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        // .*Data is an object for even further customizing your specific graph output.
-        LineData lineData = new LineData(dataSet1);
-        // One could instead combine two separate datasets into one ArrayList then feed it into the LineData object instead.
-//        ArrayList dataSetFinal = new ArrayList<>();
-//        dataSetFinal.add(dataSet1);
-//        dataSetFinal.add(dataSet2);
-//        LineData lineData = new LineData(dataSetFinal);
+        // Needs to be Raw declaration and not ArrayList<Entry>, because cannot cast to (ILineData) set when instantiating lineData
+        ArrayList dataSetFinal = new ArrayList<>();
+        dataSetFinal.addAll(Arrays.asList(dataSets));
+
+        LineData lineData = new LineData(dataSetFinal);
 
         // x-axis customizing
         lChartHistoric.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
         lChartHistoric.getXAxis().setTextSize(15); // The float represents pixel density, within [6f, 24f]
         lChartHistoric.getXAxis().setGranularity(1); // Sets the minimum step when zooming in
+        lChartHistoric.getXAxis().setAxisMinimum(0);
         // y-axis customizing
         lChartHistoric.getAxisRight().setDrawLabels(false); // Disables the desired y-axis
         lChartHistoric.getAxisLeft().setGranularity(1);
         lChartHistoric.getAxisLeft().setLabelCount(10);
+        lChartHistoric.getAxisLeft().setAxisMinimum(0);
+        lChartHistoric.getAxisLeft().setAxisMaximum(MAX_RANDOM_INT);
         lChartHistoric.getAxisLeft().setTextSize(15);
 
 
         // Finalizes and displays your data!
         lChartHistoric.setData(lineData);
         lChartHistoric.invalidate(); // refreshes the chart
+    }
+
+    public LineDataSet createLineDataSet(ArrayList<Entry> entries, String strLabel, int red, int blue, int green) {
+        // .*DataSet puts your data together, which can then be formatted before display.
+        LineDataSet dataSet1 = new LineDataSet(entries, strLabel);
+        dataSet1.setColor(Color.rgb(red, blue, green));
+        dataSet1.setCircleColor(Color.rgb(red, blue, green));
+//        dataSet1.setDrawFilled(true);
+//        dataSet1.setFillColor(Color.rgb(150, 0, 0));
+        dataSet1.setDrawValues(false);
+        return dataSet1;
     }
 
     public void addRandomEntryHistorical() {
