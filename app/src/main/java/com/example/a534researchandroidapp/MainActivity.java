@@ -21,16 +21,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.stream.Collectors;
 
 
 public class MainActivity extends AppCompatActivity {
     // The time (in ms) between ticks when running the btnStart function.
     private final int TIME_INTERVAL = 400;
-    private final int MAX_RANDOM_INT = 10;
+    private final int MAX_RANDOM_INT = 1000;
     private final int MIN_RANDOM_INT = 1;
 
 
-    private Button btnRandomInt, btnStart, btnStop, btnClear;
+    private Button btnRandomInt, btnStart, btnStop, btnClear, btnAiReport;
     private TextView txtInitialData;
     private LineChart lChartHistoric;
 
@@ -51,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
         btnStart = (Button) findViewById(R.id.btn_start);
         btnStop = (Button) findViewById(R.id.btn_stop);
         btnClear = (Button) findViewById(R.id.btn_clear);
+        btnAiReport = (Button) findViewById(R.id.btn_ai_report);
         txtInitialData = (TextView) findViewById(R.id.txt_initial_data);
         lChartHistoric = (LineChart) findViewById(R.id.line_chart_historic);
 
@@ -98,6 +100,28 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+
+        btnAiReport.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                List<Entry> sortedHistoricalEntries = historicalEntries.stream().sorted((p1, p2) -> Float.compare(p2.getY(), p1.getY())).collect(Collectors.toList());
+                String strOut;
+                if (!sortedHistoricalEntries.isEmpty()) {
+                    strOut = String.format("Max: (%.0f, %.0f)!\n", sortedHistoricalEntries.get(0).getX(), sortedHistoricalEntries.get(0).getY());
+                    strOut += String.format("Y-val Mean: %.2f\n", sortedHistoricalEntries.stream().mapToInt(p1 -> (int) p1.getY()).average().orElse(0));
+                    if (sortedHistoricalEntries.size() % 2 == 0) {
+                        float mid1 = sortedHistoricalEntries.get((int) (sortedHistoricalEntries.size() / 2)).getY();
+                        float mid2 = sortedHistoricalEntries.get((int) (sortedHistoricalEntries.size() / 2) - 1).getY();
+                        strOut += String.format("Y-val Median: %.1f\n",  (mid1 + mid2) / 2);
+                    }  else {
+                        strOut += String.format("Y-val Median: %.1f\n", sortedHistoricalEntries.get((int) (sortedHistoricalEntries.size() / 2)).getY());
+                    }
+                } else {
+                    strOut = "No data to interpret...";
+                }
+                txtInitialData.setText(strOut);
+            }
+        });
     }
 
     public void addEntryHistorical(int toBeAdded) {
@@ -141,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
         // Generates a int in the range [1, 10]
         int rand = (int) (Math.random() * MAX_RANDOM_INT + MIN_RANDOM_INT);
 
-        txtInitialData.setText(Integer.toString(rand));
+//        txtInitialData.setText(Integer.toString(rand));
         addEntryHistorical(rand);
     }
 }
