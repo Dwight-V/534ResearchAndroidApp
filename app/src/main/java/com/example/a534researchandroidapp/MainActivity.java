@@ -4,9 +4,12 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
@@ -16,16 +19,27 @@ import com.github.mikephil.charting.data.LineDataSet;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class MainActivity extends AppCompatActivity {
-    private Button btnRandomInt;
+    // The time (in ms) between ticks when running the btnStart function.
+    private final int TIME_INTERVAL = 400;
+    private final int MAX_RANDOM_INT = 10;
+    private final int MIN_RANDOM_INT = 1;
+
+
+    private Button btnRandomInt, btnStart, btnStop, btnClear;
     private TextView txtInitialData;
     private LineChart lineChartHistoric;
 
 
-    int xValCount = 0;
-    List<Entry> lChartHistoricEntries = new ArrayList<Entry>();
+    private int xValCount = 0;
+    private List<Entry> lChartHistoricEntries = new ArrayList<Entry>();
+
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable runnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,19 +47,51 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         btnRandomInt = (Button) findViewById(R.id.btn_random_int);
+        btnStart = (Button) findViewById(R.id.btn_start);
+        btnStop = (Button) findViewById(R.id.btn_stop);
+        btnClear = (Button) findViewById(R.id.btn_clear);
         txtInitialData = (TextView) findViewById(R.id.txt_initial_data);
         lineChartHistoric = (LineChart) findViewById(R.id.lchart_historic);
 
+        // Similar to a TimerTask for java.util.Timer; gets called ever TIME_INTERVAL.
+        runnable = new Runnable() {
+            @Override
+            public void run() {
+                addRandomEntry();
+                updateLChartHistorical();
+                handler.postDelayed(this, TIME_INTERVAL); // Schedule the runnable to run again after 1 second
+            }
+        };
 
         btnRandomInt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // Generates a int in the range [1, 10]
-                int randInt = (int) (Math.random() * 10 + 1);
-
-                txtInitialData.setText(Integer.toString(randInt));
-                addEntry(randInt);
+                addRandomEntry();
                 updateLChartHistorical();
+            }
+        });
+
+        btnStart.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                Toast.makeText(MainActivity.this, "Auto-
+                handler.post(runnable);
+            }
+        });
+
+        btnStop.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                handler.removeCallbacks(runnable);
+            }
+        });
+
+        btnClear.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                lChartHistoricEntries.clear();
+                updateLChartHistorical();
+                return false;
             }
         });
     }
@@ -85,5 +131,13 @@ public class MainActivity extends AppCompatActivity {
         // Finalizes and displays your data!
         lineChartHistoric.setData(lineData);
         lineChartHistoric.invalidate(); // refreshes the chart
+    }
+
+    public void addRandomEntry() {
+        // Generates a int in the range [1, 10]
+        int rand = (int) (Math.random() * MAX_RANDOM_INT + MIN_RANDOM_INT);
+
+        txtInitialData.setText(Integer.toString(rand));
+        addEntry(rand);
     }
 }
