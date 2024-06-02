@@ -19,7 +19,7 @@
         android:textSize="30sp"/>
 
     <com.github.mikephil.charting.charts.LineChart
-        android:id="@+id/lchart_historic"
+        android:id="@+id/line_chart_historic"
         android:layout_width="match_parent"
         android:layout_height="400dp"
         android:layout_below="@+id/txt_initial_data"
@@ -34,7 +34,7 @@
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:id="@+id/linear_layout_graph_buttons"
-        android:layout_below="@+id/lchart_historic">
+        android:layout_below="@+id/line_chart_historic">
 
         <Button
             android:id="@+id/btn_start"
