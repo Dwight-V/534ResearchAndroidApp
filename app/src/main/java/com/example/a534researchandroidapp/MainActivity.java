@@ -111,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
         dataSet1.setCircleColor(Color.rgb(155,0,0));
         dataSet1.setDrawFilled(true);
         dataSet1.setFillColor(Color.rgb(100, 0, 0));
+        dataSet1.setDrawValues(false);
 
         // .*Data is an object for even further customizing your specific graph output.
         LineData lineData = new LineData(dataSet1);
