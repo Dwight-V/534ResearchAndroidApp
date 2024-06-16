@@ -1,11 +1,16 @@
 package com.example.a534researchandroidapp;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -23,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 1;
     private Button btnUpdateTxtOut, btnScan;
     private TextView txtOut;
+    private BluetoothAdapter bluetoothAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +38,10 @@ public class MainActivity extends AppCompatActivity {
         btnUpdateTxtOut = (Button) findViewById(R.id.btnUpdateTxtOut);
         btnScan = (Button) findViewById(R.id.btnScan);
         txtOut = (TextView) findViewById(R.id.txtOut);
+
+        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        bluetoothAdapter = bluetoothManager.getAdapter();
+
 
         btnUpdateTxtOut.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -51,6 +61,44 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // ************************************************************************ All from https://punchthrough.com/android-ble-guide/
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!bluetoothAdapter.isEnabled()) {
+            promptEnableBluetooth();
+        }
+    }
+
+    private final ActivityResultLauncher<Intent> bluetoothEnablingResult = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    // Bluetooth is enabled, good to go
+                } else {
+                    // User dismissed or denied Bluetooth prompt
+                    promptEnableBluetooth();
+                }
+            }
+    );
+
+    /**
+     * Prompts the user to enable Bluetooth via a system dialog.
+     *
+     * For Android 12+, {@link android.Manifest.permission#BLUETOOTH_CONNECT} is required to use
+     * the {@link BluetoothAdapter#ACTION_REQUEST_ENABLE} intent.
+     */
+    private void promptEnableBluetooth() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            // Insufficient permission to prompt for Bluetooth enabling
+            return;
+        }
+        if (!bluetoothAdapter.isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            bluetoothEnablingResult.launch(enableBtIntent);
+        }
+    }
+
     /**
      * Determine whether the current {@link Context} has been granted the relevant {@link Manifest.permission}.
      */
