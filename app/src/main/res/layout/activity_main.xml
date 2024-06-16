@@ -24,4 +24,13 @@
         android:textSize="20sp"
         android:text="150"/>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/btnUpdateTxtOut"
+        android:layout_centerHorizontal="true"
+        android:id="@+id/btnScan"
+        android:textSize="20sp"
+        android:text="BLE Scan Start"/>
+
 </RelativeLayout>
