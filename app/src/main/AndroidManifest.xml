@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Request legacy Bluetooth permissions on versions older than API 31 (Android 12). -->
+    <!-- Request legacy Bluetooth permissions on versions older than API 31 (Android 12). From https://punchthrough.com/android-ble-guide/ -->
     <uses-permission android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
@@ -16,6 +16,11 @@
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="s" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- For if Bluetooth is required for your app -->
+<!--    <uses-feature-->
+<!--        android:name="android.hardware.bluetooth_le"-->
+<!--        android:required="true" />-->
 
     <application
         android:allowBackup="true"
