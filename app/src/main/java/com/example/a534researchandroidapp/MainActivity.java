@@ -6,12 +6,19 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -29,6 +36,9 @@ public class MainActivity extends AppCompatActivity {
     private Button btnUpdateTxtOut, btnScan;
     private TextView txtOut;
     private BluetoothAdapter bluetoothAdapter;
+    private BluetoothLeScanner bleScanner;
+    private ScanSettings scanSettings;
+    private ScanCallback scanCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +51,23 @@ public class MainActivity extends AppCompatActivity {
 
         BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
+        bleScanner = bluetoothAdapter.getBluetoothLeScanner();
+
+        scanSettings = new ScanSettings.Builder()
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                .build();
+
+        scanCallback = new ScanCallback() {
+            @Override
+            @SuppressLint("MissingPermission")
+            public void onScanResult(int callbackType, ScanResult result) {
+                BluetoothDevice device = result.getDevice();
+                if (device != null) { String name = device.getName();
+                    String address = device.getAddress();
+                    Log.i("ScanCallback", "Found BLE device! Name: " + (name != null ? name : "Unnamed") + ", address: " + address);
+                }
+            }
+        };
 
 
         btnUpdateTxtOut.setOnClickListener(new View.OnClickListener() {
@@ -119,11 +146,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private void startBleScan(Context context) {
         if (!hasRequiredBluetoothPermissions(context)) {
             requestRelevantRuntimePermissions((Activity) context);
         } else {
-            // TODO: Actually perform scan
+            bleScanner.startScan(null, scanSettings, scanCallback);
         }
     }
 
