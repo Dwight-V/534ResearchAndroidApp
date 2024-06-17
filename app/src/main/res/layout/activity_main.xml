@@ -31,6 +31,6 @@
         android:layout_centerHorizontal="true"
         android:id="@+id/btnScan"
         android:textSize="20sp"
-        android:text="BLE Scan Start"/>
+        android:text="Start Scan"/>
 
 </RelativeLayout>

@@ -40,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     private ScanSettings scanSettings;
     private ScanCallback scanCallback;
 
+    private boolean isScanning = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,7 +83,14 @@ public class MainActivity extends AppCompatActivity {
         btnScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startBleScan(MainActivity.this);
+                if (isScanning) {
+                    stopBleScan();
+                    btnScan.setText("Start Scan");
+                } else {
+                    startBleScan(MainActivity.this);
+                    btnScan.setText("Stop Scan");
+                }
+
             }
         });
 
@@ -152,8 +161,16 @@ public class MainActivity extends AppCompatActivity {
             requestRelevantRuntimePermissions((Activity) context);
         } else {
             bleScanner.startScan(null, scanSettings, scanCallback);
+            isScanning = true;
         }
     }
+
+    @SuppressLint("MissingPermission")
+    private void stopBleScan() {
+        bleScanner.stopScan(scanCallback);
+        isScanning = false;
+    }
+
 
     private void requestRelevantRuntimePermissions(Activity activity) {
         if (hasRequiredBluetoothPermissions(activity)) {
