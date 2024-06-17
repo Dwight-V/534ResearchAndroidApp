@@ -17,6 +17,7 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Intent;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -29,6 +30,12 @@ import android.widget.Toast;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -39,8 +46,11 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothLeScanner bleScanner;
     private ScanSettings scanSettings;
     private ScanCallback scanCallback;
+    private ScanResultAdapter scanResultAdapter;
+    private RecyclerView scanResultsRecyclerView;
 
     private boolean isScanning = false;
+    private List<ScanResult> scanResults = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,14 +72,44 @@ public class MainActivity extends AppCompatActivity {
         scanCallback = new ScanCallback() {
             @Override
             @SuppressLint("MissingPermission")
-            public void onScanResult(int callbackType, ScanResult result) {
-                BluetoothDevice device = result.getDevice();
-                if (device != null) { String name = device.getName();
+            public void onScanResult(int callbackType, @NonNull ScanResult result) {
+                int indexQuery = -1;
+                for (int i = 0; i < scanResults.size(); i++) {
+                    if (scanResults.get(i).getDevice().getAddress().equals(result.getDevice().getAddress())) {
+                        indexQuery = i;
+                        break;
+                    }
+                }
+                if (indexQuery != -1) { // A scan result already exists with the same address
+                    scanResults.set(indexQuery, result);
+                    scanResultAdapter.notifyItemChanged(indexQuery);
+                } else {
+                    BluetoothDevice device = result.getDevice();
+                    String name = device.getName() != null ? device.getName() : "Unnamed";
                     String address = device.getAddress();
-                    Log.i("ScanCallback", "Found BLE device! Name: " + (name != null ? name : "Unnamed") + ", address: " + address);
+                    Log.i("ScanCallback", "Found BLE device! Name: " + name + ", address: " + address);
+
+                    scanResults.add(result);
+                    scanResultAdapter.notifyItemInserted(scanResults.size() - 1);
                 }
             }
+
+            @Override
+            public void onScanFailed(int errorCode) {
+                Log.e("ScanCallback", "onScanFailed: code " + errorCode);
+            }
         };
+
+        scanResultAdapter = new ScanResultAdapter(scanResults, new ScanResultAdapter.OnItemClickListener() {
+            @Override
+            public void onClick(ScanResult device) {
+                // TODO: Implement action for item click
+            }
+        });
+
+
+
+        setupRecyclerView();
 
 
         btnUpdateTxtOut.setOnClickListener(new View.OnClickListener() {
@@ -155,11 +195,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @SuppressLint("MissingPermission")
+    @SuppressLint({"MissingPermission", "NotifyDataSetChanged"})
     private void startBleScan(Context context) {
         if (!hasRequiredBluetoothPermissions(context)) {
             requestRelevantRuntimePermissions((Activity) context);
         } else {
+            scanResults.clear();
+            scanResultAdapter.notifyDataSetChanged();
             bleScanner.startScan(null, scanSettings, scanCallback);
             isScanning = true;
         }
@@ -251,6 +293,18 @@ public class MainActivity extends AppCompatActivity {
         } else {
             // Unexpected scenario encountered when handling permissions
             recreate();
+        }
+    }
+
+    private void setupRecyclerView() {
+        scanResultsRecyclerView = findViewById(R.id.scan_results_recycler_view);
+        scanResultsRecyclerView.setAdapter(scanResultAdapter);
+        scanResultsRecyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
+        scanResultsRecyclerView.setNestedScrollingEnabled(false);
+
+        RecyclerView.ItemAnimator animator = scanResultsRecyclerView.getItemAnimator();
+        if (animator instanceof SimpleItemAnimator) {
+            ((SimpleItemAnimator) animator).setSupportsChangeAnimations(false);
         }
     }
 }

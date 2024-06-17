@@ -33,4 +33,11 @@
         android:textSize="20sp"
         android:text="Start Scan"/>
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_below="@+id/btnScan"
+        android:id="@+id/scan_results_recycler_view"
+        tools:listitem="@layout/row_scan_result"/>
+
 </RelativeLayout>
