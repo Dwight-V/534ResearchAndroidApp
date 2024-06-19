@@ -11,7 +11,10 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
@@ -100,10 +103,37 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        scanResultAdapter = new ScanResultAdapter(scanResults, new ScanResultAdapter.OnItemClickListener() {
+        BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
+            @SuppressLint("MissingPermission")
             @Override
-            public void onClick(ScanResult device) {
-                // TODO: Implement action for item click
+            public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+                String deviceAddress = gatt.getDevice().getAddress();
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    if (newState == BluetoothProfile.STATE_CONNECTED) {
+                        Log.w("BluetoothGattCallback", "Successfully connected to " + deviceAddress);
+                        // TODO: Store a reference to BluetoothGatt
+                    } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                        Log.w("BluetoothGattCallback", "Successfully disconnected from " + deviceAddress);
+                        gatt.close();
+                    }
+                } else {
+                    Log.w("BluetoothGattCallback", "Error " + status + " encountered for " + deviceAddress + "! Disconnecting...");
+                    gatt.close();
+                }
+            }
+        };
+
+
+        scanResultAdapter = new ScanResultAdapter(scanResults, new ScanResultAdapter.OnItemClickListener() {
+            @SuppressLint("MissingPermission")
+            @Override
+            public void onClick(ScanResult result) {
+                if (isScanning) {
+                    stopBleScan();
+                }
+                BluetoothDevice device = result.getDevice();
+                Log.w("ScanResultAdapter", "Connecting to " + device.getAddress());
+                device.connectGatt(MainActivity.this, false, gattCallback);
             }
         });
 
