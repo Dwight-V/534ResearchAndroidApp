@@ -13,6 +13,8 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -22,6 +24,8 @@ import android.bluetooth.le.ScanSettings;
 import android.content.Intent;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -54,6 +58,8 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean isScanning = false;
     private List<ScanResult> scanResults = new ArrayList<>();
+
+    private BluetoothGatt connectedGatt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,7 +117,13 @@ public class MainActivity extends AppCompatActivity {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         Log.w("BluetoothGattCallback", "Successfully connected to " + deviceAddress);
-                        // TODO: Store a reference to BluetoothGatt
+                        connectedGatt = gatt;
+                        new Handler(Looper.getMainLooper()).post(new Runnable() {
+                            @Override
+                            public void run() {
+                                connectedGatt.discoverServices();
+                            }
+                        });
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         Log.w("BluetoothGattCallback", "Successfully disconnected from " + deviceAddress);
                         gatt.close();
@@ -119,6 +131,14 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     Log.w("BluetoothGattCallback", "Error " + status + " encountered for " + deviceAddress + "! Disconnecting...");
                     gatt.close();
+                }
+            }
+            @Override
+            public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+                if (status == BluetoothGatt.GATT_SUCCESS) {
+                    Log.w("BluetoothGattCallback", "Discovered " + gatt.getServices().size() + " services for " + gatt.getDevice().getAddress());
+                    printGattTable(gatt); // Call to the printGattTable method implemented earlier
+                    // Consider connection setup as complete here
                 }
             }
         };
@@ -337,4 +357,24 @@ public class MainActivity extends AppCompatActivity {
             ((SimpleItemAnimator) animator).setSupportsChangeAnimations(false);
         }
     }
+
+    private void printGattTable(BluetoothGatt gatt) {
+        List<BluetoothGattService> services = gatt.getServices();
+        if (services.isEmpty()) {
+            Log.i("printGattTable", "No service and characteristic available, call discoverServices() first?");
+            return;
+        }
+        for (BluetoothGattService service : services) {
+            StringBuilder characteristicsTable = new StringBuilder("|--");
+            for (BluetoothGattCharacteristic characteristic : service.getCharacteristics()) {
+                characteristicsTable.append(characteristic.getUuid().toString()).append("\n|--");
+            }
+            // Remove the last appended "|--"
+            if (characteristicsTable.length() >= 3) {
+                characteristicsTable.setLength(characteristicsTable.length() - 3);
+            }
+            Log.i("printGattTable", "\nService " + service.getUuid() + "\nCharacteristics:\n" + characteristicsTable.toString());
+        }
+    }
+
 }
