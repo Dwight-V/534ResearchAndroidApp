@@ -47,6 +47,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 1;
+    private static final int GATT_MAX_MTU_SIZE = 517;
     private Button btnUpdateTxtOut, btnScan;
     private TextView txtOut;
     private BluetoothAdapter bluetoothAdapter;
@@ -128,6 +129,9 @@ public class MainActivity extends AppCompatActivity {
                         Log.w("BluetoothGattCallback", "Successfully disconnected from " + deviceAddress);
                         gatt.close();
                     }
+                    // Assume the worst case; that we're working with the minimum packet ATT MTU size of 23. Anything larger is just a bonus.
+                    // If we write to the bluetooth device over our packet size, we'll see a GATT_INVALID_ATTRIBUTE_LENGTH error.
+                    gatt.requestMtu(GATT_MAX_MTU_SIZE);
                 } else {
                     Log.w("BluetoothGattCallback", "Error " + status + " encountered for " + deviceAddress + "! Disconnecting...");
                     gatt.close();
@@ -141,6 +145,12 @@ public class MainActivity extends AppCompatActivity {
                     // Consider connection setup as complete here
                 }
             }
+
+            @Override
+            public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
+                Log.w("BluetoothGattCallback", "ATT MTU changed to " + mtu + ", success: " + (status == BluetoothGatt.GATT_SUCCESS));
+            }
+
         };
 
 
