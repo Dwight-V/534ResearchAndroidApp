@@ -22,7 +22,7 @@ import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Intent;
-import android.net.wifi.WifiManager;
+import java.util.UUID;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -125,30 +125,76 @@ public class MainActivity extends AppCompatActivity {
                                 connectedGatt.discoverServices();
                             }
                         });
+                        connectedGatt.requestMtu(GATT_MAX_MTU_SIZE);
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         Log.w("BluetoothGattCallback", "Successfully disconnected from " + deviceAddress);
                         gatt.close();
                     }
                     // Assume the worst case; that we're working with the minimum packet ATT MTU size of 23. Anything larger is just a bonus.
                     // If we write to the bluetooth device over our packet size, we'll see a GATT_INVALID_ATTRIBUTE_LENGTH error.
-                    gatt.requestMtu(GATT_MAX_MTU_SIZE);
                 } else {
                     Log.w("BluetoothGattCallback", "Error " + status + " encountered for " + deviceAddress + "! Disconnecting...");
                     gatt.close();
                 }
             }
+            // Is called after onConnectionStateChange(), and should be where all the read/write changes are made.
             @Override
             public void onServicesDiscovered(BluetoothGatt gatt, int status) {
                 if (status == BluetoothGatt.GATT_SUCCESS) {
                     Log.w("BluetoothGattCallback", "Discovered " + gatt.getServices().size() + " services for " + gatt.getDevice().getAddress());
                     printGattTable(gatt); // Call to the printGattTable method implemented earlier
                     // Consider connection setup as complete here
+                    readBatteryLevel();
                 }
             }
 
             @Override
             public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
                 Log.w("BluetoothGattCallback", "ATT MTU changed to " + mtu + ", success: " + (status == BluetoothGatt.GATT_SUCCESS));
+            }
+
+            @Deprecated
+            @SuppressWarnings("deprecation")
+            @Override
+            public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+                UUID uuid = characteristic.getUuid();
+                switch (status) {
+                    case BluetoothGatt.GATT_SUCCESS:
+                        Log.i("BluetoothGattCallback", "Read characteristic " + uuid + ":\n" + toHexString(characteristic.getValue()));
+                        break;
+                    case BluetoothGatt.GATT_READ_NOT_PERMITTED:
+                        Log.e("BluetoothGattCallback", "Read not permitted for " + uuid + "!");
+                        break;
+                    default:
+                        Log.e("BluetoothGattCallback", "Characteristic read failed for " + uuid + ", error: " + status);
+                        break;
+                }
+            }
+
+            @Override
+            public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, byte[] value, int status) {
+                UUID uuid = characteristic.getUuid();
+                switch (status) {
+                    case BluetoothGatt.GATT_SUCCESS:
+                        Log.i("BluetoothGattCallback", "Read characteristic " + uuid + ":\n" + toHexString(value));
+                        break;
+                    case BluetoothGatt.GATT_READ_NOT_PERMITTED:
+                        Log.e("BluetoothGattCallback", "Read not permitted for " + uuid + "!");
+                        break;
+                    default:
+                        Log.e("BluetoothGattCallback", "Characteristic read failed for " + uuid + ", error: " + status);
+                        break;
+                }
+            }
+
+            // Helper method to convert byte array to hex string
+            public String toHexString(byte[] bytes) {
+                StringBuilder sb = new StringBuilder(bytes.length * 2);
+                sb.append("0x");
+                for (byte b : bytes) {
+                    sb.append(String.format("%02X ", b));
+                }
+                return sb.toString().trim();
             }
 
         };
@@ -160,6 +206,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(ScanResult result) {
                 if (isScanning) {
                     stopBleScan();
+                    btnScan.setText("Start Scan");
                 }
                 BluetoothDevice device = result.getDevice();
                 Log.w("ScanResultAdapter", "Connecting to " + device.getAddress());
@@ -385,6 +432,46 @@ public class MainActivity extends AppCompatActivity {
             }
             Log.i("printGattTable", "\nService " + service.getUuid() + "\nCharacteristics:\n" + characteristicsTable.toString());
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void readBatteryLevel() {
+        /* Note that these UUIDs are custom for the specific BLE server I'm using. There are standard UUIDs for general operations found here: https://www.bluetooth.com/specifications/assigned-numbers/
+        When using a specific characteristic,
+        1. Ensure that your device has it (we can see it in the listing of printGattTable())
+        2. If using a standard UUID, add the 00000000-0000-1000-8000-00805f9b34fb base base to it.
+            Ex: "GATT Service | 0x1801" from the above mentioned doc = "00001801-0000-1000-8000-00805f9b34fb" below.
+        */
+        UUID batteryServiceUuid = UUID.fromString("8c380000-10bd-4fdb-ba21-1922d6cf860d");
+        UUID batteryLevelCharUuid = UUID.fromString("8c380001-10bd-4fdb-ba21-1922d6cf860d");
+
+        if (batteryServiceUuid == null || batteryLevelCharUuid == null) {
+            // Handle the null UUID case, e.g., log an error or throw an exception
+            Log.e("BatteryService", "UUID is null");
+            return;
+        }
+
+        BluetoothGattService batteryService = connectedGatt.getService(batteryServiceUuid);
+        if (batteryService == null) {
+            // Handle the case where the service is not found
+            Log.e("BatteryService", "Battery service not found");
+            return;
+        }
+
+        BluetoothGattCharacteristic batteryLevelChar = batteryService.getCharacteristic(batteryLevelCharUuid);
+        if (batteryLevelChar == null) {
+            // Handle the case where the characteristic is not found
+            Log.e("BatteryService", "Battery level characteristic not found");
+            return;
+        }
+
+        if (isReadable(batteryLevelChar)) {
+            connectedGatt.readCharacteristic(batteryLevelChar);
+        }
+    }
+
+    private boolean isReadable(BluetoothGattCharacteristic characteristic) {
+        return (characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_READ) != 0;
     }
 
 }
