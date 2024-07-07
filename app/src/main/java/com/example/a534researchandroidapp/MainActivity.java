@@ -146,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.w("BluetoothGattCallback", "Discovered " + gatt.getServices().size() + " services for " + gatt.getDevice().getAddress());
                     printGattTable(gatt); // Call to the printGattTable method implemented earlier
                     // Consider connection setup as complete here
-                    readBatteryLevel();
+                    readCustomBleCharacteristic();
                 }
             }
 
@@ -440,43 +440,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @SuppressLint("MissingPermission")
-    private void readBatteryLevel() {
+    private void readCustomBleCharacteristic() {
         /* Note that these UUIDs are custom for the specific BLE server I'm using. There are standard UUIDs for general operations found here: https://www.bluetooth.com/specifications/assigned-numbers/
-        When using a specific characteristic,
-        1. Ensure that your device has it (we can see it in the listing of printGattTable())
+        When using a specific Characteristic,
+        1. Ensure that your device has your desired Characteristic (we can see it in the listing of printGattTable())
         2. If using a standard UUID, add the 00000000-0000-1000-8000-00805f9b34fb base base to it.
-            Ex: "GATT Service | 0x1801" from the above mentioned doc = "00001801-0000-1000-8000-00805f9b34fb" below.
+            Ex: "GATT Service | 0x1801" from the above mentioned doc would be the UUID "00001801-0000-1000-8000-00805f9b34fb" below.
+
+            In our case, since I'm running a custom BLE peripheral/server, I can make the UUID whatever I want on the server side, and ensure that it's the same here.
+            This is why the below UUIDs don't follow the above convention. But when looking to see if your peripheral supports a certain characteristic, the printGattTable() call
+            will be using the base 0000xxxx-0000-1000-8000-00805f9b34fb mask.
         */
-        UUID batteryServiceUuid = UUID.fromString("8c380000-10bd-4fdb-ba21-1922d6cf860d");
-        UUID batteryLevelCharUuid = UUID.fromString("8c380001-10bd-4fdb-ba21-1922d6cf860d");
+        UUID cusotmServiceUuid = UUID.fromString("8c380000-10bd-4fdb-ba21-1922d6cf860d");
+        UUID customCharacteristicUuid = UUID.fromString("8c380001-10bd-4fdb-ba21-1922d6cf860d");
 
-        if (batteryServiceUuid == null || batteryLevelCharUuid == null) {
+        if (cusotmServiceUuid == null || customCharacteristicUuid == null) {
             // Handle the null UUID case, e.g., log an error or throw an exception
-            Log.e("BatteryService", "UUID is null");
+            Log.e("customService", "UUID is null");
             return;
         }
 
-        BluetoothGattService batteryService = connectedGatt.getService(batteryServiceUuid);
-        if (batteryService == null) {
+        BluetoothGattService customService = connectedGatt.getService(cusotmServiceUuid);
+        if (customService == null) {
             // Handle the case where the service is not found
-            Log.e("BatteryService", "Battery service not found");
+            Log.e("customService", "Custom service not found");
             return;
         }
 
-        BluetoothGattCharacteristic batteryLevelChar = batteryService.getCharacteristic(batteryLevelCharUuid);
-        if (batteryLevelChar == null) {
+        BluetoothGattCharacteristic customCharacteristic = customService.getCharacteristic(customCharacteristicUuid);
+        if (customCharacteristic == null) {
             // Handle the case where the characteristic is not found
-            Log.e("BatteryService", "Battery level characteristic not found");
+            Log.e("customService", "Battery level characteristic not found");
             return;
         }
 
-        if (isReadable(batteryLevelChar)) {
-            connectedGatt.readCharacteristic(batteryLevelChar);
+        // Checks that we have permission to see the Characteristic's properties, and that the Characteristic in question is configured correctly for us to read.
+        if ((customCharacteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_READ) != 0) {
+            connectedGatt.readCharacteristic(customCharacteristic);
         }
     }
-
-    private boolean isReadable(BluetoothGattCharacteristic characteristic) {
-        return (characteristic.getProperties() & BluetoothGattCharacteristic.PROPERTY_READ) != 0;
-    }
-
 }
