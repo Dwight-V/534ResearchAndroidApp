@@ -62,6 +62,8 @@ public class MainActivity extends AppCompatActivity {
 
     private BluetoothGatt connectedGatt;
 
+    private String bleCharacteristicString;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -177,6 +179,8 @@ public class MainActivity extends AppCompatActivity {
                 switch (status) {
                     case BluetoothGatt.GATT_SUCCESS:
                         Log.i("BluetoothGattCallback", "Read characteristic " + uuid + ":\n" + toHexString(value));
+                        bleCharacteristicString = new String(value);
+                        txtOut.setText(bleCharacteristicString);
                         break;
                     case BluetoothGatt.GATT_READ_NOT_PERMITTED:
                         Log.e("BluetoothGattCallback", "Read not permitted for " + uuid + "!");
@@ -187,7 +191,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            // Helper method to convert byte array to hex string
+            // Helper method to convert byte array to hex string. Read the docs to understand what type of bits you're receiving.
+            // In our case, as it's a custom Characteristic, so we know it's unsigned array of bits representing a string. So we don't (have to) use this.
             public String toHexString(byte[] bytes) {
                 StringBuilder sb = new StringBuilder(bytes.length * 2);
                 sb.append("0x");
